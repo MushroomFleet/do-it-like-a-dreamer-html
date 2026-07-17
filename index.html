@@ -1,0 +1,1292 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b0618">
+<meta name="description" content="LIKE A DREAMER — an informational single-page experience about the bleeding edge of the browser: WebGL2, GLSL, scroll-driven CSS, OKLCH, variable fonts, Web Audio. Tuned to 11,000 rpm.">
+<title>LIKE A DREAMER — 11,000 RPM</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='44' fill='%230b0618' stroke='%23ff7a3d' stroke-width='8'/%3E%3Cline x1='50' y1='50' x2='76' y2='28' stroke='%23ffd9a0' stroke-width='8' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,100..900;1,62..125,100..900&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+
+<style>
+/* ============================================================
+   LIKE A DREAMER · TYPE-11 · DJR (Drift Johnson Racing)
+   One file. Zero frameworks. View source IS the documentation.
+   ============================================================ */
+
+@property --hue   { syntax: '<number>'; inherits: false; initial-value: 20; }
+@property --spin  { syntax: '<angle>';  inherits: false; initial-value: 0deg; }
+
+:root{
+  color-scheme: dark;
+  --bg:     oklch(14% 0.045 300);
+  --ink:    oklch(95% 0.02 80);
+  --dim:    oklch(78% 0.03 70 / .78);
+  --faint:  oklch(78% 0.03 70 / .5);
+  --amber:  oklch(78% 0.16 65);
+  --ember:  oklch(68% 0.22 40);
+  --rose:   oklch(70% 0.19 20);
+  --red:    oklch(62% 0.25 27);
+  --violet: oklch(58% 0.17 300);
+  --line:   oklch(85% 0.06 70 / .16);
+  --glass:  oklch(16% 0.04 300 / .52);
+  --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+  --disp: 'Archivo', 'Archivo Variable', system-ui, -apple-system, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+html, body { margin: 0; }
+
+body{
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--disp);
+  font-size: clamp(1rem, .95rem + .3vw, 1.15rem);
+  line-height: 1.6;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection { background: oklch(68% .22 40 / .85); color: oklch(98% .01 80); }
+
+:focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; border-radius: 4px; }
+
+@supports (scrollbar-color: red blue){
+  html { scrollbar-color: oklch(55% .14 55 / .8) oklch(12% .03 300); scrollbar-width: thin; }
+}
+
+/* ---------- the world ---------- */
+#gl{
+  position: fixed; inset: 0;
+  width: 100vw; height: 100vh;
+  z-index: -1;
+  background:
+    linear-gradient(oklch(16% .06 300) 0%, oklch(30% .1 320) 38%,
+                    oklch(62% .19 45) 55%, oklch(20% .05 300) 56%, oklch(10% .03 300) 100%);
+}
+html.no-webgl #gl { filter: saturate(1.1); }
+
+/* ---------- HUD ---------- */
+.hud{
+  position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  padding: .65rem clamp(.9rem, 3vw, 2rem);
+  font-family: var(--mono); font-size: .72rem; letter-spacing: .12em;
+  background: color-mix(in oklch, var(--bg) 42%, transparent);
+  backdrop-filter: blur(14px) saturate(1.35);
+  -webkit-backdrop-filter: blur(14px) saturate(1.35);
+  border-bottom: 1px solid var(--line);
+}
+.hud__brand{ white-space: nowrap; color: var(--ink); }
+.hud__brand b{ color: var(--amber); font-weight: 600; }
+.hud__brand span{ color: var(--faint); margin-left: .6em; }
+.hud__leds{ display: flex; gap: .3rem; }
+.hud__leds i{
+  width: .5rem; height: .5rem; border-radius: 50%;
+  background: oklch(40% .02 70 / .35);
+  border: 1px solid oklch(80% .05 70 / .2);
+  transition: background .08s, box-shadow .08s;
+}
+.hud__leds i.on   { background: var(--amber); box-shadow: 0 0 8px oklch(78% .16 65 / .9); }
+.hud__leds i.hot  { background: var(--red);   box-shadow: 0 0 10px oklch(62% .25 27 / .95); }
+.hud__right{ display: flex; align-items: center; gap: .9rem; white-space: nowrap; }
+.hud__gear{ color: var(--amber); font-weight: 600; }
+.hud__rpm{ font-weight: 600; font-size: .95rem; color: var(--ink); font-variant-numeric: tabular-nums; }
+.hud__rpm small{ color: var(--faint); font-size: .65rem; margin-left: .35em; letter-spacing: .08em; }
+.hud__kmh{ color: var(--dim); font-variant-numeric: tabular-nums; }
+.hud button{
+  font: inherit; color: var(--dim); background: none;
+  border: 1px solid var(--line); border-radius: 999px;
+  padding: .3rem .8rem; cursor: pointer; letter-spacing: .12em;
+}
+.hud button:hover{ color: var(--ink); border-color: var(--amber); }
+@media (max-width: 760px){ .hud__leds, .hud__kmh{ display:none; } }
+
+/* rev bar — scroll progress as a rev counter, pure CSS scroll timeline */
+.revbar{
+  position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 60;
+  background: oklch(30% .04 300 / .4);
+}
+.revbar i{
+  display: block; height: 100%;
+  transform-origin: 0 50%; transform: scaleX(0);
+  background: linear-gradient(90deg, var(--amber) 0 62%, var(--ember) 62% 82%, var(--red) 82% 100%);
+  box-shadow: 0 0 12px oklch(70% .2 45 / .8);
+}
+@supports (animation-timeline: scroll()){
+  .revbar i{ animation: rev linear both; animation-timeline: scroll(root); }
+  @keyframes rev { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+}
+
+/* ---------- layout ---------- */
+main{ position: relative; z-index: 1; }
+section{ position: relative; padding: 22vh clamp(1.2rem, 5vw, 4rem); }
+.inner{ max-width: 72rem; margin-inline: auto; }
+
+.kicker{
+  font-family: var(--mono); font-size: .72rem; letter-spacing: .3em;
+  color: var(--amber); text-transform: uppercase; margin: 0 0 1rem;
+  text-shadow: 0 1px 12px oklch(10% .03 300 / .8);
+}
+.kicker::before{ content: '// '; color: var(--faint); }
+h2{
+  font-size: clamp(2.4rem, 6.5vw, 4.8rem); line-height: .98;
+  letter-spacing: -.02em; margin: 0 0 2.2rem;
+  font-variation-settings: 'wdth' 118, 'wght' 780;
+  text-wrap: balance;
+  text-shadow: 0 2px 30px oklch(8% .02 300 / .85);
+}
+.copy{
+  max-width: 66ch; font-weight: 340;
+  color: var(--ink);
+  background: var(--glass);
+  border: 1px solid var(--line); border-radius: 18px;
+  padding: clamp(1.2rem, 3vw, 2rem) clamp(1.3rem, 3.5vw, 2.4rem);
+  backdrop-filter: blur(16px) saturate(1.3);
+  -webkit-backdrop-filter: blur(16px) saturate(1.3);
+}
+.copy p{ margin: 0 0 1.1em; } .copy p:last-child{ margin-bottom: 0; }
+.copy em{ color: var(--amber); font-style: normal; font-weight: 560; }
+.copy code{
+  font-family: var(--mono); font-size: .85em; color: oklch(88% .1 70);
+  background: oklch(30% .06 60 / .3); border-radius: 5px; padding: .1em .35em;
+}
+.note{ font-family: var(--mono); font-size: .72rem; color: var(--faint); letter-spacing: .06em; margin-top: 1.2rem; }
+
+/* reveal-on-scroll (IntersectionObserver drives .in) */
+.reveal{
+  opacity: 0; translate: 0 44px; filter: blur(10px);
+  transition: opacity .9s, translate .9s, filter .9s;
+  transition-timing-function: cubic-bezier(.2,.7,.2,1);
+  transition-delay: calc(var(--i, 0) * 110ms);
+}
+.reveal.in{ opacity: 1; translate: 0 0; filter: none; }
+/* debug peek mode: snap everything visible, no time-driven effects */
+.peeking .reveal{ transition: none !important; }
+
+/* ---------- hero ---------- */
+#hero{
+  min-height: 100svh; display: grid; place-content: center; text-align: center;
+  padding-top: 16vh;
+}
+.hero__ghost{
+  position: absolute; inset: 0; display: grid; place-content: center;
+  font-size: clamp(8rem, 30vw, 26rem); font-variation-settings: 'wdth' 125, 'wght' 850;
+  color: transparent; -webkit-text-stroke: 1px oklch(90% .08 70 / .13);
+  letter-spacing: -.03em; user-select: none; pointer-events: none;
+  transform: translateY(-4vh);
+}
+.hero__title{
+  margin: 0; line-height: .88; letter-spacing: -.03em;
+  font-size: clamp(3.2rem, 12.5vw, 10.5rem);
+  font-variation-settings: 'wdth' 122, 'wght' 820;
+  text-transform: uppercase;
+}
+.hero__title .l1{ display: block; font-variation-settings: 'wdth' 95, 'wght' 300; font-size: .42em; letter-spacing: .3em; color: var(--dim); margin-bottom: .3em; }
+.hero__title .l2{
+  display: block;
+  background: linear-gradient(97deg, oklch(92% .07 85), oklch(80% .16 60) 34%, oklch(70% .22 35) 62%, oklch(68% .19 15));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 6px 40px oklch(60% .2 40 / .45));
+}
+.hero__sub{
+  max-width: 46ch; margin: 2.4rem auto 0; color: var(--dim); font-weight: 340;
+  text-shadow: 0 1px 18px oklch(8% .02 300 / .9);
+  background: color-mix(in oklch, var(--bg) 40%, transparent);
+  border: 1px solid oklch(85% .06 70 / .1); border-radius: 16px;
+  padding: 1.1rem 1.4rem;
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+}
+.hero__sub b{ color: var(--ink); font-weight: 560; }
+.hero__cue{
+  margin-top: 4.2rem; font-family: var(--mono); font-size: .72rem; letter-spacing: .34em;
+  color: var(--faint); text-transform: uppercase;
+}
+.hero__cue i{ display: block; margin-top: .8rem; animation: cue 1.6s ease-in-out infinite; font-style: normal; color: var(--amber); }
+@keyframes cue { 0%,100%{ transform: translateY(0); opacity:.5 } 50%{ transform: translateY(9px); opacity:1 } }
+.corner{
+  position: absolute; font-family: var(--mono); font-size: .62rem; letter-spacing: .22em;
+  color: var(--faint); text-transform: uppercase; padding: 1.1rem 1.3rem;
+}
+.corner.tl{ top: 3rem; left: 0; } .corner.tr{ top: 3rem; right: 0; text-align: right; }
+.corner.bl{ bottom: 0; left: 0; } .corner.br{ bottom: 0; right: 0; text-align: right; }
+@media (max-width: 760px){ .corner{ display: none; } }
+
+/* ---------- marquee ---------- */
+.marquee{
+  overflow: hidden; white-space: nowrap; transform: rotate(-1.1deg) scale(1.02);
+  border-block: 1px solid var(--line);
+  background: color-mix(in oklch, var(--bg) 35%, transparent);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  padding: .9rem 0; margin-block: 4vh;
+}
+.marquee__track{ display: inline-flex; width: max-content; animation: marq 26s linear infinite; }
+.marquee__track > span{
+  font-variation-settings: 'wdth' 120, 'wght' 720; text-transform: uppercase;
+  font-size: clamp(1.1rem, 2.6vw, 1.9rem); letter-spacing: .08em; color: var(--ink);
+  padding-right: .5em;
+}
+.marquee__track .alt{ color: transparent; -webkit-text-stroke: 1px oklch(90% .1 70 / .55); }
+@keyframes marq { to { transform: translateX(-50%); } }
+
+/* ---------- telemetry ---------- */
+.telemetry{
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  gap: 1px; margin-top: 2.4rem; border: 1px solid var(--line); border-radius: 14px;
+  overflow: hidden; background: var(--line);
+  font-family: var(--mono);
+}
+.telemetry div{ background: color-mix(in oklch, var(--bg) 72%, transparent); padding: .9rem 1rem; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.telemetry dt{ font-size: .6rem; letter-spacing: .22em; color: var(--faint); text-transform: uppercase; margin: 0 0 .3rem; }
+.telemetry dd{ margin: 0; font-size: 1.05rem; color: var(--amber); font-variant-numeric: tabular-nums; }
+.telemetry dd small{ color: var(--faint); font-size: .65em; }
+
+pre.code{
+  margin-top: 2.4rem; padding: 1.4rem 1.6rem; border-radius: 14px;
+  border: 1px solid var(--line);
+  background: oklch(11% .03 300 / .72);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  font-family: var(--mono); font-size: .78rem; line-height: 1.7;
+  color: oklch(86% .05 80); overflow-x: auto;
+}
+pre.code .c{ color: var(--faint); } pre.code .k{ color: var(--ember); } pre.code .n{ color: var(--amber); }
+
+/* ---------- scroll-timeline demo cards ---------- */
+.tl-grid{ display: grid; gap: 1.2rem; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); margin-top: 3rem; }
+.tl-card{
+  border: 1px solid var(--line); border-radius: 18px; padding: 1.6rem;
+  background: var(--glass); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  min-height: 13rem; display: flex; flex-direction: column; justify-content: space-between;
+}
+.tl-card b{ font-family: var(--mono); font-size: .68rem; letter-spacing: .26em; color: var(--amber); font-weight: 600; }
+.tl-card p{ margin: 1rem 0 0; font-size: .92rem; color: var(--dim); }
+.tl-strip{
+  margin-top: 3rem; overflow: hidden; border-block: 1px dashed var(--line); padding: 1rem 0;
+  font-family: var(--mono); color: var(--faint); font-size: .8rem; letter-spacing: .5em; white-space: nowrap;
+}
+@supports (animation-timeline: view()){
+  .tl-card{
+    animation: cardIn linear both;
+    animation-timeline: view();
+    animation-range: entry 0% cover 42%;
+  }
+  .peeking .tl-card, .peeking .tl-strip i{ animation: none; }
+  .tl-card:nth-child(2){ animation-range: entry 8% cover 50%; }
+  .tl-card:nth-child(3){ animation-range: entry 16% cover 58%; }
+  @keyframes cardIn{
+    from{ opacity: 0; transform: translateY(110px) rotate(3deg) scale(.92); }
+    to  { opacity: 1; transform: none; }
+  }
+  .tl-strip i{
+    display: inline-block; font-style: normal;
+    animation: markers linear both; animation-timeline: view(); animation-range: cover 0% cover 100%;
+  }
+  @keyframes markers{ from{ transform: translateX(6%); } to{ transform: translateX(-46%); } }
+}
+
+/* ---------- chroma ---------- */
+.chroma-word{
+  font-size: clamp(4rem, 14vw, 12rem); line-height: 1; margin: 1rem 0 2.5rem;
+  font-variation-settings: 'wdth' 125, 'wght' 880; letter-spacing: -.02em;
+  background: linear-gradient(100deg,
+    oklch(80% .25 var(--hue)),
+    oklch(72% .27 calc(var(--hue) + 70)) 45%,
+    oklch(82% .23 calc(var(--hue) + 150)));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: huecycle 7s linear infinite;
+  filter: drop-shadow(0 4px 34px oklch(60% .2 var(--hue) / .35));
+}
+@keyframes huecycle{ to{ --hue: 380; } }
+.chroma-row{ display: flex; align-items: center; gap: 2.5rem; flex-wrap: wrap; margin-top: 2.6rem; }
+.hue-ring{
+  width: clamp(8rem, 16vw, 12rem); aspect-ratio: 1; border-radius: 50%; flex: none;
+  background: conic-gradient(from var(--spin) in oklch longer hue, oklch(70% .29 0), oklch(70% .29 359));
+  -webkit-mask: radial-gradient(closest-side, transparent 58%, #000 60%);
+  mask: radial-gradient(closest-side, transparent 58%, #000 60%);
+  animation: ringspin 16s linear infinite;
+}
+@keyframes ringspin{ to{ --spin: 360deg; } }
+.swatches{ display: flex; flex: 1; min-width: 15rem; height: 4.4rem; border-radius: 12px; overflow: hidden; border: 1px solid var(--line); }
+.swatches i{ flex: 1; display: grid; place-items: end center; font-family: var(--mono); font-size: .55rem; color: oklch(15% .03 300 / .85); padding-bottom: .35rem; font-style: normal; }
+
+/* ---------- type ---------- */
+.specimen{
+  font-size: clamp(3.4rem, 13vw, 11.5rem); line-height: 1; margin: 2rem 0 .6rem;
+  text-transform: uppercase; letter-spacing: -.01em; white-space: nowrap;
+  font-variation-settings: 'wdth' 62, 'wght' 100;
+  text-shadow: 0 3px 34px oklch(8% .02 300 / .9);
+}
+.axes{ font-family: var(--mono); font-size: .72rem; letter-spacing: .2em; color: var(--amber); }
+.axes span{ color: var(--faint); }
+.breath{ display: flex; gap: .04em; font-size: clamp(2rem, 7vw, 5rem); margin-top: 3rem; text-transform: uppercase; }
+.breath span{ animation: breathe 2.6s ease-in-out infinite; animation-delay: calc(var(--i) * -.22s); }
+@keyframes breathe{
+  0%, 100%{ font-variation-settings: 'wdth' 68, 'wght' 180; }
+  50%     { font-variation-settings: 'wdth' 125, 'wght' 860; }
+}
+
+/* ---------- redline ---------- */
+#redline{ text-align: center; }
+#redline .kicker, #redline h2{ text-align: center; }
+#redline .copy{ margin-inline: auto; text-align: left; }
+.gauge-wrap{ position: relative; width: min(74vmin, 33rem); margin: 3.4rem auto 1rem; }
+#tach{ width: 100%; aspect-ratio: 1; display: block; }
+.digitals{
+  display: flex; justify-content: center; gap: 2.6rem; font-family: var(--mono);
+  margin-top: .6rem; font-variant-numeric: tabular-nums;
+}
+.digitals div{ text-align: center; }
+.digitals dt{ font-size: .58rem; letter-spacing: .3em; color: var(--faint); text-transform: uppercase; }
+.digitals dd{ margin: .2rem 0 0; font-size: 1.7rem; color: var(--ink); font-weight: 600; }
+.digitals dd.hot{ color: var(--red); text-shadow: 0 0 18px oklch(62% .25 27 / .8); }
+.hammer{
+  margin-top: 2.6rem;
+  font: 600 .85rem var(--mono); letter-spacing: .3em; text-transform: uppercase;
+  color: oklch(15% .03 60); background: linear-gradient(120deg, var(--amber), var(--ember));
+  border: none; border-radius: 999px; padding: 1.15rem 2.8rem; cursor: pointer;
+  box-shadow: 0 0 0 1px oklch(90% .1 70 / .25), 0 8px 44px oklch(65% .22 40 / .45);
+  transition: transform .15s, box-shadow .3s, filter .3s;
+}
+.hammer:hover{ transform: translateY(-2px) scale(1.02); box-shadow: 0 0 0 1px oklch(90% .1 70 / .4), 0 12px 60px oklch(65% .22 40 / .7); }
+.hammer:active{ transform: translateY(1px) scale(.99); }
+.hammer:disabled{ filter: grayscale(.4) brightness(.8); cursor: default; transform: none; }
+.hammer-note{ font-family: var(--mono); font-size: .68rem; color: var(--faint); letter-spacing: .12em; margin-top: 1.1rem; }
+
+/* ---------- outro ---------- */
+#outro{ min-height: 90svh; display: grid; place-content: center; text-align: center; padding-bottom: 8vh; }
+.lyric{
+  font-size: clamp(1.5rem, 3.6vw, 2.6rem); line-height: 1.5; font-weight: 300; font-style: italic;
+  max-width: 30ch; margin: 2.5rem auto; color: var(--ink);
+  text-shadow: 0 2px 30px oklch(8% .02 300 / .9);
+}
+.lyric b{
+  font-style: italic; font-weight: 700;
+  background: linear-gradient(95deg, oklch(90% .09 85), oklch(74% .19 45));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.credits{
+  display: flex; flex-wrap: wrap; justify-content: center; gap: .5rem .6rem;
+  max-width: 46rem; margin: 3rem auto 0; padding: 0; list-style: none;
+}
+.credits li{
+  font-family: var(--mono); font-size: .64rem; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--dim); border: 1px solid var(--line); border-radius: 999px; padding: .38rem .9rem;
+  background: color-mix(in oklch, var(--bg) 45%, transparent);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+footer{
+  position: relative; z-index: 1; text-align: center; padding: 2.5rem 1rem 3.5rem;
+  font-family: var(--mono); font-size: .64rem; letter-spacing: .18em; color: var(--faint);
+}
+footer b{ color: var(--amber); font-weight: 600; }
+
+/* ---------- reduced motion ---------- */
+@media (prefers-reduced-motion: reduce){
+  html{ scroll-behavior: auto; }
+  .marquee__track, .breath span, .hero__cue i{ animation: none; }
+  .chroma-word{ animation-duration: 60s; }
+  .hue-ring{ animation-duration: 90s; }
+  .reveal{ transition-duration: .3s; translate: 0 0; filter: none; }
+}
+</style>
+</head>
+<body>
+
+<canvas id="gl" aria-hidden="true"></canvas>
+
+<div class="revbar" aria-hidden="true"><i id="revfill"></i></div>
+
+<header class="hud">
+  <div class="hud__brand"><b>DJR</b> LIKE A DREAMER <span>TYPE-11</span></div>
+  <div class="hud__leds" id="leds" aria-hidden="true"></div>
+  <div class="hud__right">
+    <span class="hud__kmh"><span id="kmh">0</span> km/h</span>
+    <span class="hud__gear" id="gear">N</span>
+    <span class="hud__rpm"><span id="rpmDigits">00880</span><small>RPM</small></span>
+    <button id="muteBtn" type="button" aria-pressed="false" title="Toggle engine audio [M]">MUTE</button>
+  </div>
+</header>
+
+<main>
+
+<!-- ================= HERO ================= -->
+<section id="hero">
+  <div class="hero__ghost" aria-hidden="true">11000</div>
+  <div class="corner tl">DJR · Drift Johnson Racing<br>chassis: single HTML file</div>
+  <div class="corner tr">course: Helios Expressway<br>condition: perpetual dusk</div>
+  <div class="corner bl">grip: daydream<br>lap: ∞</div>
+  <div class="corner br">no frameworks · no build step<br>view source is the documentation</div>
+
+  <h1 class="hero__title">
+    <span class="l1">Like a</span>
+    <span class="l2">Dreamer</span>
+  </h1>
+  <p class="hero__sub">
+    An <b>informational single-page experience</b> about the bleeding edge of the
+    browser — where every technique described is the one running under your cursor
+    right now. The world behind this text is <b>one fragment shader</b>. Your
+    scrollbar is the throttle.
+  </p>
+  <div class="hero__cue">Scroll to accelerate<i>▼</i></div>
+</section>
+
+<div class="marquee" aria-hidden="true">
+  <div class="marquee__track">
+    <span>Follow your heart ✦ do it like a dreamer ✦ 11,000 rpm ✦ one file ✦ zero frameworks ✦ </span><span class="alt">Follow your heart ✦ do it like a dreamer ✦ 11,000 rpm ✦ one file ✦ zero frameworks ✦ </span>
+  </div>
+</div>
+
+<!-- ================= 01 · WEBGL ================= -->
+<section id="engine">
+  <div class="inner">
+    <p class="kicker reveal">01 — The world outside your windshield</p>
+    <h2 class="reveal" style="--i:1">One shader,<br>whole horizon.</h2>
+    <div class="copy reveal" style="--i:2">
+      <p>Everything moving behind this panel — the dusk gradient, the ridgelines, the
+      road, the twin rivers of tail-lights — is a <em>single WebGL2 fragment shader</em>.
+      No textures. No meshes. No three.js. Roughly two hundred lines of GLSL painting
+      every pixel, every frame, from pure math.</p>
+      <p>The sky is three color ramps cross-faded in code. The mountains are one
+      <code>fbm()</code> noise function sliced into silhouettes. The road is a one-line
+      perspective divide: <code>z = height / (horizon − y)</code>. The tail-lights are
+      Gaussian ridges of noise streamed along that same <code>z</code>.</p>
+      <p>And it listens. The page hands the shader a <em>journey uniform</em> as you
+      scroll — the sun sets, stars ignite, the whole world rolls from dusk into deep
+      night, and (if you make it to the end) out the other side into dawn. Scroll
+      <em>speed</em> feeds a second uniform: drive faster and the light streaks stretch.</p>
+    </div>
+
+    <dl class="telemetry reveal" style="--i:3" aria-label="live render telemetry">
+      <div><dt>renderer</dt><dd id="t-webgl">—</dd></div>
+      <div><dt>fps</dt><dd id="t-fps">0</dd></div>
+      <div><dt>frame</dt><dd id="t-ms">0<small> ms</small></dd></div>
+      <div><dt>canvas</dt><dd id="t-res">—</dd></div>
+      <div><dt>uJourney</dt><dd id="t-journey">0.000</dd></div>
+      <div><dt>uSpeed</dt><dd id="t-speed">0.000</dd></div>
+      <div><dt>engine</dt><dd id="t-rpm">880</dd></div>
+      <div><dt>scroll vel</dt><dd id="t-vel">0<small> px/s</small></dd></div>
+    </dl>
+
+    <pre class="code reveal" style="--i:4"><span class="c">// the entire mountain range, unabridged:</span>
+<span class="k">float</span> <span class="n">fbm</span>(vec2 p){
+  <span class="k">float</span> v = 0.0, a = 0.5;
+  <span class="k">for</span> (<span class="k">int</span> i = 0; i &lt; 4; i++){
+    v += a * noise(p);
+    p  = p * 2.03 + vec2(11.7, 9.2);
+    a *= 0.5;
+  }
+  <span class="k">return</span> v;
+}
+<span class="k">float</span> ridge = horizon + 0.075 * <span class="n">fbm</span>(vec2(x * 1.6 + drift, 2.7));</pre>
+  </div>
+</section>
+
+<!-- ================= 02 · SCROLL TIMELINES ================= -->
+<section id="timelines">
+  <div class="inner">
+    <p class="kicker reveal">02 — Choreography without a conductor</p>
+    <h2 class="reveal" style="--i:1">The scrollbar<br>is the timeline.</h2>
+    <div class="copy reveal" style="--i:2">
+      <p>The rev-bar pinned to the top of this page is <em>pure CSS</em> — two
+      declarations: <code>animation-timeline: scroll(root)</code> and a keyframe that
+      scales it. No scroll listener, no JavaScript, no main-thread work at all: the
+      compositor scrubs it directly.</p>
+      <p>The cards below run on <code>view()</code> timelines — animation progress
+      keyed to each card's own position in your viewport. They aren't <em>triggered</em>,
+      they're <em>scrubbed</em>: drag your scrollbar backwards and time runs in
+      reverse. Entry and exit both, declared in a line each with
+      <code>animation-range</code>.</p>
+    </div>
+
+    <div class="tl-grid">
+      <div class="tl-card"><b>ENTRY / SCRUB</b><p>Opacity, rotation and lift on this card are a function of scroll position — not time. Reverse your scroll: the animation plays backwards.</p></div>
+      <div class="tl-card"><b>ANIMATION-RANGE</b><p><code>entry 0% → cover 42%</code>. Each card in this row starts eight points later than its neighbor. Stagger, declared, not scripted.</p></div>
+      <div class="tl-card"><b>ZERO MAIN-THREAD</b><p>If you're reading this mid-flight, JavaScript had nothing to do with it. The compositor did the driving. Sixty (or 120) fps by construction.</p></div>
+    </div>
+
+    <div class="tl-strip" aria-hidden="true"><i>| ' | ' ' ' | ' | ' ' ' | ' | ' ' ' | ' | ' ' ' | ' | ' ' ' | ' | ' ' ' | ' | ' ' ' | ' | ' ' ' | ' | ' ' ' | ' | ' ' ' | ' | ' ' ' | ' |</i></div>
+    <p class="note">Scroll-driven animations need a scroll-timeline capable browser (Chrome, Edge, Safari 26+). Elsewhere, the cards politely stand still — everything else on this page still runs.</p>
+  </div>
+</section>
+
+<!-- ================= 03 · OKLCH ================= -->
+<section id="chroma">
+  <div class="inner">
+    <p class="kicker reveal">03 — Paint beyond sRGB</p>
+    <h2 class="reveal" style="--i:1">Color that<br>keeps its nerve.</h2>
+    <div class="chroma-word reveal" style="--i:2" aria-label="CHROMA">CHROMA</div>
+    <div class="copy reveal" style="--i:3">
+      <p>The word above never stops moving through hue — and never goes muddy —
+      because it's specified in <em>OKLCH</em>, where lightness is perceptual: hue 40
+      and hue 240 at <code>L 72%</code> genuinely <em>look</em> equally bright, which
+      hex codes have never once promised you.</p>
+      <p>The cycling itself is a registered custom property —
+      <code>@property --hue { syntax: '&lt;number&gt;' }</code> — which makes the hue
+      <em>itself</em> animatable, so one keyframe drives a three-stop gradient.
+      The ring below interpolates <code>in oklch longer hue</code>, the swatches are
+      stepped around the hue wheel at constant lightness and chroma, and on a wide-gamut
+      display these reds and greens sit outside sRGB entirely — the browser is
+      compositing this page in Display-P3.</p>
+    </div>
+    <div class="chroma-row reveal" style="--i:4">
+      <div class="hue-ring" aria-hidden="true"></div>
+      <div class="swatches" id="swatches" aria-label="OKLCH hue sweep at constant lightness and chroma"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 04 · VARIABLE TYPE ================= -->
+<section id="type">
+  <div class="inner">
+    <p class="kicker reveal">04 — Letterforms with a throttle</p>
+    <h2 class="reveal" style="--i:1">Type at speed.</h2>
+    <div class="copy reveal" style="--i:2">
+      <p>The specimen below is not ten fonts. It is <em>one file with two sliders</em> —
+      Archivo's variable axes: weight 100→900 and width 62→125, both continuous.
+      Your scrollbar is holding both sliders: as the word crosses the middle of your
+      viewport it inflates to full width and full weight, then exhales on the way out.</p>
+      <p>Every headline on this page is the same single font file at a different
+      point on those axes — set with <code>font-variation-settings</code>, animated
+      for free, no extra network weight.</p>
+    </div>
+    <div class="specimen" id="specimen" aria-label="VELOCITY">VELOCITY</div>
+    <p class="axes"><span>live axes →</span> <span id="axesOut">wdth 62 · wght 100</span></p>
+    <div class="breath" aria-hidden="true">
+      <span style="--i:0">D</span><span style="--i:1">R</span><span style="--i:2">E</span><span style="--i:3">A</span><span style="--i:4">M</span><span style="--i:5">E</span><span style="--i:6">R</span>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 05 · REDLINE ================= -->
+<section id="redline">
+  <div class="inner">
+    <p class="kicker reveal">05 — This one goes to eleven</p>
+    <h2 class="reveal" style="--i:1">11,000 rpm.</h2>
+    <div class="copy reveal" style="--i:2">
+      <p>The tachometer below is a 2D canvas redrawn every frame. The needle isn't
+      tweened — it's <em>simulated</em>: a damped spring (stiffness 130, damping 13)
+      chasing the engine. The overshoot and the shiver at redline aren't easing
+      curves; they're physics. The wobble is the point.</p>
+      <p>The engine note is <em>synthesized live</em> by the Web Audio API — two
+      sawtooth oscillators a firing-order apart, a sub-octave, and band-passed noise
+      for intake hiss, pushed through a <code>tanh</code> waveshaper so it growls
+      instead of buzzes. Pitch tracks rpm at <code>f = rpm / 20</code>. Nothing here
+      is a video and nothing is a sample.</p>
+      <p>Press the button for a full six-gear pull to the limiter. <em>Engine audio
+      starts on press</em> — M to mute.</p>
+    </div>
+
+    <div class="gauge-wrap reveal" style="--i:3">
+      <canvas id="tach" role="img" aria-label="Tachometer, redline at 11,000 rpm"></canvas>
+    </div>
+
+    <dl class="digitals" aria-label="digital readouts">
+      <div><dt>RPM</dt><dd id="d-rpm">880</dd></div>
+      <div><dt>GEAR</dt><dd id="d-gear">N</dd></div>
+      <div><dt>KM/H</dt><dd id="d-kmh">0</dd></div>
+    </dl>
+
+    <button class="hammer" id="hammerBtn" type="button">Drop the hammer</button>
+    <p class="hammer-note">six gears · limiter at 11,000 · [H] works too</p>
+  </div>
+</section>
+
+<!-- ================= 06 · OUTRO ================= -->
+<section id="outro">
+  <div>
+    <p class="kicker reveal">06 — Out the other side</p>
+    <h2 class="reveal" style="--i:1">Dawn.</h2>
+    <p class="lyric reveal" style="--i:2">
+      I'll show you the way — how to believe in what you feel.<br>
+      I may be right, I may be wrong.<br>
+      Even the things I can't explain are heading for something.<br>
+      Follow your heart, and <b>do it like a dreamer</b>.
+    </p>
+    <ul class="credits reveal" style="--i:3">
+      <li>WebGL2</li><li>GLSL ES 3.0</li><li>scroll-driven animations</li>
+      <li>OKLCH · Display-P3</li><li>@property</li><li>color-mix()</li>
+      <li>variable fonts</li><li>Web Audio synthesis</li><li>canvas 2D</li>
+      <li>backdrop-filter</li><li>IntersectionObserver</li><li>zero dependencies</li>
+    </ul>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  built as <b>one HTML document</b> · view source is the documentation · <b>DJR</b> · July 2026 · M mute · H hammer
+</footer>
+
+<noscript><p style="text-align:center;font-family:monospace">JavaScript is off, so the engine won't turn over — but the sunset gradient above is CSS, at least.</p></noscript>
+
+<script>
+'use strict';
+/* ============================================================
+   DJR TYPE-11 — runtime
+   ============================================================ */
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const $ = id => document.getElementById(id);
+
+const MOTION_OK = !matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const S = {
+  rpm: 880, needle: 0.08, nv: 0,
+  vel: 0, journey: 0, speedN: 0.12, red: 0, dist: 0,
+  kmh: 0, gear: 'N',
+  hammer: null, engine: null, muted: false,
+  fps: 0, ms: 0, frames: 0, fpsT: 0,
+  pointer: { x: 0, y: 0, tx: 0, ty: 0 },
+  scale: 1,
+};
+
+/* ---------------- WebGL world ---------------- */
+const glCanvas = $('gl');
+const gl = glCanvas.getContext('webgl2', { antialias: false, alpha: false, powerPreference: 'high-performance' });
+
+const FRAG = `#version 300 es
+precision highp float;
+uniform vec2  uRes;
+uniform float uTime;
+uniform float uSpeed;
+uniform float uJourney;
+uniform float uRedline;
+uniform float uDist;
+uniform float uMotion;
+uniform vec2  uPointer;
+out vec4 outColor;
+
+float hash21(vec2 p){
+  vec3 p3 = fract(vec3(p.xyx) * 443.8975);
+  p3 += dot(p3, p3.yzx + 19.19);
+  return fract((p3.x + p3.y) * p3.z);
+}
+float noise(vec2 p){
+  vec2 i = floor(p), f = fract(p);
+  f = f * f * (3.0 - 2.0 * f);
+  float a = hash21(i);
+  float b = hash21(i + vec2(1.0, 0.0));
+  float c = hash21(i + vec2(0.0, 1.0));
+  float d = hash21(i + vec2(1.0, 1.0));
+  return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+}
+float fbm(vec2 p){
+  float v = 0.0, a = 0.5;
+  for (int i = 0; i < 4; i++){
+    v += a * noise(p);
+    p = p * 2.03 + vec2(11.7, 9.2);
+    a *= 0.5;
+  }
+  return v;
+}
+
+vec3 scene(vec2 uv){
+  float aspect = uRes.x / uRes.y;
+
+  float bob   = uMotion * (sin(uTime * 2.1) * 0.0025 + sin(uTime * 3.7) * 0.0015) * uSpeed;
+  float shake = uMotion * uRedline * (hash21(vec2(floor(uTime * 60.0), 7.0)) - 0.5) * 0.007;
+  float hz = 0.42 + uPointer.y * 0.015 + bob + shake;
+  float px = uPointer.x * 0.03;
+
+  float s1 = smoothstep(0.12, 0.48, uJourney);
+  float s2 = smoothstep(0.78, 1.0, uJourney);
+  float wDusk  = 1.0 - s1;
+  float wNight = s1 * (1.0 - s2);
+  float wDawn  = s1 * s2;
+
+  vec3 top  = wDusk * vec3(0.10, 0.06, 0.23) + wNight * vec3(0.012, 0.014, 0.05) + wDawn * vec3(0.14, 0.10, 0.26);
+  vec3 hzc  = wDusk * vec3(1.00, 0.42, 0.15) + wNight * vec3(0.24, 0.09, 0.32)  + wDawn * vec3(1.00, 0.58, 0.45);
+  vec3 sunc = wDusk * vec3(1.00, 0.72, 0.38) + wNight * vec3(0.85, 0.90, 1.00)  + wDawn * vec3(1.00, 0.78, 0.55);
+
+  float sunY = hz + mix(0.10, -0.18, smoothstep(0.0, 0.5, uJourney)) + smoothstep(0.75, 1.0, uJourney) * 0.26;
+  vec2 sunP = vec2(0.5 + px * 0.5 + mix(0.16, -0.12, uJourney), sunY);
+
+  vec3 col;
+
+  if (uv.y >= hz){
+    /* -------- sky -------- */
+    float t = clamp((uv.y - hz) / max(0.001, 1.0 - hz), 0.0, 1.0);
+    vec3 sky = mix(hzc, top, pow(t, 0.75));
+
+    vec2 sv = (uv - sunP) * vec2(aspect, 1.0);
+    float sd = length(sv);
+    float glow = exp(-sd * 5.5) * (wDusk * 0.9 + wDawn * 0.8 + wNight * 0.15);
+    sky += sunc * glow;
+    float disc = 1.0 - smoothstep(0.085, 0.092, sd);
+    sky += sunc * disc * (wDusk + wDawn) * 1.15;
+
+    /* stars */
+    float starN = wNight + wDawn * 0.2;
+    if (starN > 0.004){
+      vec2 sp = uv * vec2(aspect, 1.0) * 60.0;
+      vec2 id = floor(sp);
+      vec2 gv = fract(sp) - 0.5;
+      float h = hash21(id);
+      if (h > 0.92){
+        vec2 off = vec2(hash21(id + 1.3), hash21(id + 2.7)) - 0.5;
+        float d = length(gv - off * 0.6);
+        float tw = 0.6 + 0.4 * sin(uTime * (1.0 + h * 4.0) + h * 40.0);
+        sky += vec3(0.9, 0.95, 1.0) * (1.0 - smoothstep(0.0, 0.09, d)) * tw * starN
+             * smoothstep(hz + 0.05, hz + 0.3, uv.y) * (h - 0.92) * 12.0;
+      }
+    }
+
+    /* ridgelines */
+    float rx = uv.x * aspect;
+    float r1 = hz + 0.045 + 0.075 * fbm(vec2(rx * 1.6 + 3.1 + uDist * 0.004, 2.7));
+    float r2 = hz + 0.018 + 0.045 * fbm(vec2(rx * 2.6 + 17.0 + uDist * 0.009, 5.1));
+    vec3 m1c = mix(top, hzc, 0.30) * 0.38;
+    vec3 m2c = mix(top, hzc, 0.16) * 0.20;
+    float haze1 = smoothstep(hz, hz + 0.035, uv.y);
+    float haze2 = smoothstep(hz, hz + 0.022, uv.y);
+    sky = mix(sky, m1c, (1.0 - smoothstep(r1 - 0.003, r1 + 0.003, uv.y)) * haze1);
+    sky = mix(sky, m2c, (1.0 - smoothstep(r2 - 0.002, r2 + 0.002, uv.y)) * haze2);
+    col = sky;
+  } else {
+    /* -------- ground / road -------- */
+    float z  = 0.13 / max(0.0001, hz - uv.y);
+    float wx = (uv.x - 0.5 - px * 0.4) * z * aspect * 3.0;
+    float s  = z + uDist;
+
+    float n = noise(vec2(wx * 2.0, s * 2.0)) * 0.5 + noise(vec2(wx * 7.0, s * 7.0)) * 0.25;
+    vec3 ground = vec3(0.035, 0.030, 0.050) * (0.7 + 0.3 * n);
+
+    float road = 1.0 - smoothstep(1.0, 1.15, abs(wx));
+    vec3 rc = vec3(0.050, 0.045, 0.070) * (0.8 + 0.25 * n);
+
+    float dash  = step(0.55, fract(s * 0.5)) * (1.0 - smoothstep(0.015, 0.05, abs(wx)));
+    float edges = 1.0 - smoothstep(0.015, 0.05, abs(abs(wx) - 0.92));
+    vec3 markc = mix(vec3(1.0, 0.85, 0.55), vec3(0.9, 0.9, 1.0), wNight);
+    rc += markc * (dash * 0.7 + edges * 0.5);
+
+    float ti = 0.25 + 0.75 * uSpeed;
+    float tr = exp(-pow((wx - 0.55) * 3.2, 2.0)) * (0.35 + 0.65 * fbm(vec2(s * 0.55, 8.2)));
+    float tl = exp(-pow((wx + 0.55) * 3.2, 2.0)) * (0.35 + 0.65 * fbm(vec2(s * 0.50 + 40.0, 3.7)));
+    rc += vec3(1.0, 0.12, 0.18) * tr * ti * 1.25;
+    rc += vec3(1.0, 0.75, 0.45) * tl * ti * 1.10;
+
+    ground = mix(ground, rc, road);
+
+    /* sun reflection column + distance fog */
+    ground += sunc * exp(-abs(uv.x - sunP.x) * 14.0) * (wDusk + wDawn) * 0.12 * exp(-z * 0.25);
+    float glowH = exp(-abs(uv.x - sunP.x) * aspect * 4.0) * (wDusk * 0.7 + wDawn * 0.6);
+    vec3 fogCol = hzc * 0.88 + sunc * glowH * 0.5;
+    ground = mix(ground, fogCol, clamp(1.0 - exp(-z * 0.28), 0.0, 1.0));
+    col = ground;
+  }
+
+  /* hyperspeed streaks from the vanishing point */
+  if (uRedline > 0.01){
+    vec2 v = uv - vec2(0.5 + px * 0.5, hz);
+    v.x *= aspect;
+    float r = length(v);
+    float a = atan(v.y, v.x);
+    float st = pow(fbm(vec2(a * 5.0, r * 3.0 - uDist * 1.4)), 3.0);
+    float streaks = st * uRedline * smoothstep(0.12, 0.55, r) * 2.4;
+    float s1b = smoothstep(0.12, 0.48, uJourney);
+    col += streaks * mix(vec3(1.0, 0.55, 0.30), vec3(0.65, 0.80, 1.00), s1b);
+  }
+  return col;
+}
+
+void main(){
+  vec2 uv = gl_FragCoord.xy / uRes;
+  float caA = 0.0006 + 0.005 * uRedline;
+  vec2 off = (uv - 0.5) * caA;
+
+  vec3 col;
+  col.r = scene(uv + off).r;
+  col.g = scene(uv).g;
+  col.b = scene(uv - off).b;
+
+  col = pow(max(col, 0.0), vec3(0.92));
+  col *= 1.0 - 0.38 * pow(length(uv - 0.5) * 1.35, 2.4);
+  col += (hash21(gl_FragCoord.xy + fract(uTime) * 173.0) - 0.5) * 0.045;
+  outColor = vec4(max(col, 0.0), 1.0);
+}`;
+
+const VERT = `#version 300 es
+void main(){
+  vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2));
+  gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0);
+}`;
+
+let U = null;
+function initGL(){
+  if (!gl){ document.documentElement.classList.add('no-webgl'); $('t-webgl').textContent = 'CSS fallback'; return false; }
+  const mk = (type, src) => {
+    const sh = gl.createShader(type);
+    gl.shaderSource(sh, src); gl.compileShader(sh);
+    if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)){
+      console.error('[DJR] shader compile failed:', gl.getShaderInfoLog(sh));
+      return null;
+    }
+    return sh;
+  };
+  const vs = mk(gl.VERTEX_SHADER, VERT), fs = mk(gl.FRAGMENT_SHADER, FRAG);
+  if (!vs || !fs){ document.documentElement.classList.add('no-webgl'); $('t-webgl').textContent = 'shader error'; return false; }
+  const prog = gl.createProgram();
+  gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)){
+    console.error('[DJR] program link failed:', gl.getProgramInfoLog(prog));
+    return false;
+  }
+  gl.useProgram(prog);
+  U = {};
+  for (const name of ['uRes','uTime','uSpeed','uJourney','uRedline','uDist','uMotion','uPointer'])
+    U[name] = gl.getUniformLocation(prog, name);
+  gl.uniform1f(U.uMotion, MOTION_OK ? 1 : 0.1);
+  console.log('[DJR] shader compiled — engine hot');
+  $('t-webgl').textContent = 'WebGL2 · GLSL';
+  return true;
+}
+const HAS_GL = initGL();
+
+function sizeGL(){
+  if (!HAS_GL) return;
+  const dpr = Math.min(1.4, window.devicePixelRatio || 1) * S.scale;
+  const w = Math.max(2, Math.round(innerWidth * dpr));
+  const h = Math.max(2, Math.round(innerHeight * dpr));
+  if (glCanvas.width !== w || glCanvas.height !== h){
+    glCanvas.width = w; glCanvas.height = h;
+    gl.viewport(0, 0, w, h);
+    $('t-res').textContent = w + '×' + h;
+  }
+}
+
+/* ---------------- input ---------------- */
+addEventListener('pointermove', e => {
+  S.pointer.tx = (e.clientX / innerWidth) * 2 - 1;
+  S.pointer.ty = (e.clientY / innerHeight) * 2 - 1;
+}, { passive: true });
+addEventListener('resize', sizeGL);
+
+/* ---------------- engine audio ---------------- */
+class Engine {
+  constructor(){
+    const C = new (window.AudioContext || window.webkitAudioContext)();
+    this.ctx = C;
+    const sh = C.createWaveShaper();
+    const curve = new Float32Array(1024);
+    for (let i = 0; i < 1024; i++){ const x = i / 511.5 - 1; curve[i] = Math.tanh(2.2 * x); }
+    sh.curve = curve;
+    const lp = C.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 700; lp.Q.value = 0.7;
+    this.master = C.createGain(); this.master.gain.value = 0;
+    const comp = C.createDynamicsCompressor();
+    sh.connect(lp); lp.connect(this.master); this.master.connect(comp); comp.connect(C.destination);
+
+    const mk = (type, f, g) => {
+      const o = C.createOscillator(); o.type = type; o.frequency.value = f;
+      const gn = C.createGain(); gn.gain.value = g;
+      o.connect(gn); gn.connect(sh); o.start();
+      return o;
+    };
+    this.o1 = mk('sawtooth', 44, 0.50);
+    this.o2 = mk('sawtooth', 22, 0.62); this.o2.detune.value = 7;
+    this.o3 = mk('square',   89, 0.11);
+
+    const nb = C.createBuffer(1, C.sampleRate * 1.5, C.sampleRate);
+    const d = nb.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    const ns = C.createBufferSource(); ns.buffer = nb; ns.loop = true;
+    const bp = C.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 800; bp.Q.value = 0.6;
+    this.ng = C.createGain(); this.ng.gain.value = 0.05;
+    ns.connect(bp); bp.connect(this.ng); this.ng.connect(sh); ns.start();
+
+    this.lp = lp; this.bp = bp; this.vol = 0.13;
+  }
+  set(rpm){
+    const t = this.ctx.currentTime, f = rpm / 20, k = 0.03, n = rpm / 11000;
+    this.o1.frequency.setTargetAtTime(f, t, k);
+    this.o2.frequency.setTargetAtTime(f * 0.5, t, k);
+    this.o3.frequency.setTargetAtTime(f * 2.02, t, k);
+    this.lp.frequency.setTargetAtTime(380 + n * 4800, t, k);
+    this.bp.frequency.setTargetAtTime(500 + n * 2600, t, k);
+    this.ng.gain.setTargetAtTime(0.02 + n * 0.10, t, k);
+  }
+  setOn(on){ this.master.gain.setTargetAtTime(on ? this.vol : 0, this.ctx.currentTime, 0.08); }
+}
+
+function ensureEngine(){
+  if (!S.engine){
+    try { S.engine = new Engine(); } catch (e) { console.warn('[DJR] audio unavailable', e); return; }
+  }
+  if (S.engine.ctx.state === 'suspended') S.engine.ctx.resume();
+  S.engine.setOn(!S.muted);
+}
+
+const muteBtn = $('muteBtn');
+function setMuted(m){
+  S.muted = m;
+  muteBtn.textContent = m ? 'MUTE' : '♪ ON';
+  muteBtn.setAttribute('aria-pressed', String(!m));
+  if (S.engine) S.engine.setOn(!m);
+}
+muteBtn.addEventListener('click', () => { setMuted(!S.muted); if (!S.muted) ensureEngine(); });
+
+/* ---------------- the hammer ---------------- */
+const hammerBtn = $('hammerBtn');
+function buildHammer(startRpm){
+  const kf = [{ t: 0, r: startRpm, g: 1 }];
+  let t = 0;
+  for (let g = 1; g <= 6; g++){
+    t += 1.45 - g * 0.13;
+    kf.push({ t, r: g < 6 ? 10700 + g * 40 : 11000, g });
+    if (g < 6){ t += 0.2; kf.push({ t, r: 7100 + g * 160, g: g + 1 }); }
+  }
+  t += 2.6; kf.push({ t, r: 11000, g: 6 });
+  t += 1.8; kf.push({ t, r: 950,   g: 6 });
+  return { kf, dur: t, t0: performance.now() };
+}
+function sampleHammer(h, e){
+  const k = h.kf;
+  for (let i = 0; i < k.length - 1; i++){
+    if (e <= k[i + 1].t){
+      const a = k[i], b = k[i + 1];
+      let u = (e - a.t) / Math.max(0.0001, b.t - a.t);
+      u = u * u * (3 - 2 * u);
+      return { r: a.r + (b.r - a.r) * u, g: b.g };
+    }
+  }
+  return { r: k[k.length - 1].r, g: 6 };
+}
+function dropHammer(){
+  if (S.hammer) return;
+  ensureEngine();
+  if (S.muted) setMuted(false);
+  S.hammer = buildHammer(Math.max(880, S.rpm));
+  hammerBtn.disabled = true;
+  hammerBtn.textContent = 'PINNED AT 11,000';
+}
+hammerBtn.addEventListener('click', dropHammer);
+addEventListener('keydown', e => {
+  if (e.repeat) return;
+  if (e.key === 'm' || e.key === 'M') setMuted(!S.muted);
+  if (e.key === 'h' || e.key === 'H') dropHammer();
+});
+
+/* ---------------- tachometer ---------------- */
+const tach = $('tach');
+const tctx = tach.getContext('2d');
+let tachVisible = true;
+
+function sizeTach(){
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const w = tach.clientWidth || 300;
+  tach.width = Math.round(w * dpr);
+  tach.height = Math.round(w * dpr);
+}
+new ResizeObserver(sizeTach).observe(tach);
+
+function drawTach(now){
+  const W = tach.width, H = tach.height;
+  if (W < 4) return;
+  const c = tctx;
+  c.clearRect(0, 0, W, H);
+  const cx = W / 2, cy = H / 2, R = Math.min(W, H) * 0.46;
+  const a0 = Math.PI * 0.75, span = Math.PI * 1.5;
+  const A = v => a0 + span * clamp(v / 11000, 0, 1.02);
+  const atRedline = S.rpm > 10500;
+  const blink = atRedline && (Math.floor(now / 90) % 2 === 0);
+
+  /* face */
+  c.beginPath(); c.arc(cx, cy, R * 1.04, 0, Math.PI * 2);
+  c.fillStyle = 'rgba(12,7,20,0.55)'; c.fill();
+
+  /* bezel */
+  c.lineWidth = R * 0.03; c.strokeStyle = 'rgba(255,214,160,0.18)';
+  c.beginPath(); c.arc(cx, cy, R, a0 - 0.06, a0 + span + 0.06); c.stroke();
+
+  /* red zone 9–11 */
+  c.lineWidth = R * 0.075;
+  c.strokeStyle = blink ? '#ff4050' : 'rgba(255,64,74,0.85)';
+  c.shadowColor = 'rgba(255,60,60,0.85)';
+  c.shadowBlur = atRedline ? R * 0.22 : R * 0.07;
+  c.beginPath(); c.arc(cx, cy, R * 0.925, A(9000), A(11000)); c.stroke();
+  c.shadowBlur = 0;
+
+  /* ticks */
+  for (let v = 0; v <= 11000; v += 250){
+    const major = v % 1000 === 0;
+    const ang = A(v), ca = Math.cos(ang), sa = Math.sin(ang);
+    const r1 = R * (major ? 0.80 : 0.855), r2 = R * 0.89;
+    c.lineWidth = major ? R * 0.018 : R * 0.007;
+    c.strokeStyle = v >= 9000 ? 'rgba(255,110,110,0.95)' : 'rgba(255,230,200,0.75)';
+    c.beginPath(); c.moveTo(cx + ca * r1, cy + sa * r1); c.lineTo(cx + ca * r2, cy + sa * r2); c.stroke();
+  }
+
+  /* numerals */
+  c.font = '600 ' + Math.round(R * 0.125) + "px 'IBM Plex Mono', monospace";
+  c.textAlign = 'center'; c.textBaseline = 'middle';
+  for (let v = 0; v <= 11000; v += 1000){
+    const ang = A(v);
+    c.fillStyle = v >= 9000 ? '#ff9090' : 'rgba(255,236,210,0.92)';
+    c.fillText(String(v / 1000), cx + Math.cos(ang) * R * 0.67, cy + Math.sin(ang) * R * 0.67);
+  }
+
+  /* legend */
+  c.font = '500 ' + Math.round(R * 0.07) + "px 'IBM Plex Mono', monospace";
+  c.fillStyle = 'rgba(255,220,180,0.55)';
+  c.fillText('×1000 r/min', cx, cy + R * 0.38);
+  c.fillText('THIS ONE GOES TO ELEVEN', cx, cy + R * 0.52);
+
+  /* needle */
+  const jitter = (atRedline && MOTION_OK) ? (Math.random() - 0.5) * 140 : 0;
+  const ang = A(clamp(S.needle, 0, 1.02) * 11000 + jitter);
+  const ca = Math.cos(ang), sa = Math.sin(ang);
+  c.shadowColor = 'rgba(255,140,60,0.9)'; c.shadowBlur = R * 0.13;
+  c.strokeStyle = '#ffd9a8'; c.lineWidth = R * 0.026; c.lineCap = 'round';
+  c.beginPath();
+  c.moveTo(cx - ca * R * 0.13, cy - sa * R * 0.13);
+  c.lineTo(cx + ca * R * 0.74, cy + sa * R * 0.74);
+  c.stroke();
+  c.shadowBlur = 0;
+
+  /* hub */
+  c.beginPath(); c.arc(cx, cy, R * 0.115, 0, Math.PI * 2);
+  c.fillStyle = '#160b22'; c.fill();
+  c.lineWidth = R * 0.012; c.strokeStyle = 'rgba(255,200,150,0.5)'; c.stroke();
+  c.font = '600 ' + Math.round(R * 0.07) + "px 'IBM Plex Mono', monospace";
+  c.fillStyle = 'rgba(255,220,180,0.9)';
+  c.fillText('DJR', cx, cy + R * 0.004);
+}
+
+new IntersectionObserver(es => { for (const e of es) tachVisible = e.isIntersecting; }, { rootMargin: '120px' })
+  .observe(tach);
+
+/* ---------------- shift-light LEDs ---------------- */
+const ledBox = $('leds');
+for (let i = 0; i < 10; i++) ledBox.appendChild(document.createElement('i'));
+const leds = [...ledBox.children];
+
+/* ---------------- reveals ---------------- */
+const io = new IntersectionObserver(es => {
+  for (const e of es) if (e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+}, { threshold: 0.18 });
+document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+/* ---------------- OKLCH swatches ---------------- */
+{
+  const box = $('swatches');
+  for (let i = 0; i < 12; i++){
+    const h = Math.round(i * 30);
+    const sw = document.createElement('i');
+    sw.style.background = 'oklch(70% 0.23 ' + h + ')';
+    sw.textContent = h + '°';
+    box.appendChild(sw);
+  }
+}
+
+/* ---------------- revbar JS fallback ---------------- */
+const SDA = typeof CSS !== 'undefined' && CSS.supports && CSS.supports('animation-timeline: scroll()');
+const revfill = $('revfill');
+
+/* ---------------- variable type on scroll ---------------- */
+const specimen = $('specimen');
+const axesOut = $('axesOut');
+const typeSection = $('type');
+
+/* ---------------- main loop ---------------- */
+const rpmDigits = $('rpmDigits'), gearOut = $('gear'), kmhOut = $('kmh');
+const dRpm = $('d-rpm'), dGear = $('d-gear'), dKmh = $('d-kmh');
+const tFps = $('t-fps'), tMs = $('t-ms'), tJourney = $('t-journey'),
+      tSpeed = $('t-speed'), tRpm = $('t-rpm'), tVel = $('t-vel');
+
+let lastT = performance.now(), lastY = window.scrollY;
+let hudT = 0, telT = 0, raf = 0;
+let fpsWindow = [];
+
+function frame(now){
+  raf = requestAnimationFrame(frame);
+  const dt = clamp((now - lastT) / 1000, 0.001, 0.05);
+  const frameMs = now - lastT;
+  lastT = now;
+
+  /* --- scroll physics --- */
+  const y = window.scrollY;
+  const instV = (y - lastY) / dt;
+  lastY = y;
+  S.vel += (instV - S.vel) * Math.min(1, dt * 7);
+  const maxScroll = document.documentElement.scrollHeight - innerHeight;
+  S.journey = maxScroll > 0 ? clamp(y / maxScroll, 0, 1) : 0;
+  if (S.forceJourney !== undefined) S.journey = S.forceJourney;
+  const scrollN = clamp(Math.abs(S.vel) / 2600, 0, 1);
+
+  /* --- rpm model --- */
+  let target = 880 + scrollN * 6200;
+  if (S.forceRpm) target = Math.max(target, S.forceRpm);
+  let gearNum = 1 + Math.min(5, Math.floor(S.journey * 6));
+  if (S.hammer){
+    const e = (now - S.hammer.t0) / 1000;
+    if (e >= S.hammer.dur){
+      S.hammer = null;
+      hammerBtn.disabled = false;
+      hammerBtn.textContent = 'AGAIN';
+    } else {
+      const h = sampleHammer(S.hammer, e);
+      target = Math.max(target, h.r);
+      gearNum = h.g;
+    }
+  }
+  S.rpm += (target - S.rpm) * Math.min(1, dt * 8);
+
+  /* needle spring */
+  const nT = S.rpm / 11000;
+  S.nv += ((nT - S.needle) * 130 - S.nv * 13) * dt;
+  S.needle += S.nv * dt;
+
+  /* redline + world speed */
+  const rT = clamp((S.rpm - 8600) / 2400, 0, 1) * (S.hammer ? 1 : 0.55);
+  S.red += (rT - S.red) * Math.min(1, dt * 5);
+  const spT = clamp(Math.max(scrollN, S.hammer ? S.rpm / 11000 : 0, 0.12), 0, 1);
+  S.speedN += (spT - S.speedN) * Math.min(1, dt * 4);
+  S.dist += dt * (0.5 + S.speedN * 7 + S.red * 8);
+
+  /* pointer easing */
+  S.pointer.x += (S.pointer.tx - S.pointer.x) * Math.min(1, dt * 5);
+  S.pointer.y += (S.pointer.ty - S.pointer.y) * Math.min(1, dt * 5);
+
+  /* speed readout */
+  const kmhT = S.hammer
+    ? (gearNum - 1) * 52 + (S.rpm / 11000) * 68
+    : scrollN * 150 * (0.4 + S.journey);
+  S.kmh += (kmhT - S.kmh) * Math.min(1, dt * 3);
+
+  /* engine audio */
+  if (S.engine) S.engine.set(S.rpm);
+
+  /* --- render world --- */
+  if (HAS_GL){
+    sizeGL();
+    gl.uniform2f(U.uRes, glCanvas.width, glCanvas.height);
+    gl.uniform1f(U.uTime, now / 1000);
+    gl.uniform1f(U.uSpeed, S.speedN);
+    gl.uniform1f(U.uJourney, S.journey);
+    gl.uniform1f(U.uRedline, S.red);
+    gl.uniform1f(U.uDist, S.dist);
+    gl.uniform2f(U.uPointer, S.pointer.x, S.pointer.y);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+  }
+
+  /* --- tach --- */
+  if (tachVisible) drawTach(now);
+
+  /* --- variable type scrub --- */
+  {
+    const rect = typeSection.getBoundingClientRect();
+    if (rect.bottom > 0 && rect.top < innerHeight){
+      const sRect = specimen.getBoundingClientRect();
+      const p = clamp((innerHeight - sRect.top) / (innerHeight + sRect.height), 0, 1);
+      const tri = 1 - Math.abs(p - 0.5) * 2;
+      const wdth = Math.round(62 + tri * 63);
+      const wght = Math.round(100 + tri * 800);
+      specimen.style.fontVariationSettings = "'wdth' " + wdth + ", 'wght' " + wght;
+      axesOut.textContent = 'wdth ' + wdth + ' · wght ' + wght;
+    }
+  }
+
+  /* --- revbar fallback --- */
+  if (!SDA) revfill.style.transform = 'scaleX(' + S.journey + ')';
+
+  /* --- HUD (10 Hz) --- */
+  hudT += frameMs;
+  if (hudT > 100){
+    hudT = 0;
+    const r = Math.round(S.rpm);
+    rpmDigits.textContent = String(r).padStart(5, '0');
+    const gearLabel = (S.rpm < 950 && !S.hammer && scrollN < 0.02) ? 'N' : 'G' + gearNum;
+    gearOut.textContent = gearLabel;
+    kmhOut.textContent = String(Math.round(S.kmh));
+    dRpm.textContent = String(r);
+    dRpm.classList.toggle('hot', r > 10500);
+    dGear.textContent = gearLabel;
+    dKmh.textContent = String(Math.round(S.kmh));
+
+    const lit = Math.floor(clamp((S.rpm - 3500) / 7000, 0, 1) * 10 + 0.001);
+    const flash = S.rpm > 10600 && (Math.floor(now / 90) % 2 === 0);
+    leds.forEach((led, i) => {
+      const on = flash || i < lit;
+      led.classList.toggle('on', on && i < 7);
+      led.classList.toggle('hot', on && i >= 7);
+    });
+  }
+
+  /* --- fps + dynamic resolution --- */
+  fpsWindow.push(now);
+  while (fpsWindow.length && fpsWindow[0] < now - 1000) fpsWindow.shift();
+  S.fps = fpsWindow.length;
+  S.frames++;
+  if (S.frames % 120 === 0 && HAS_GL){
+    if (S.fps < 45 && S.scale > 0.55){ S.scale *= 0.8; sizeGL(); }
+    else if (S.fps > 58 && S.scale < 1){ S.scale = Math.min(1, S.scale * 1.12); sizeGL(); }
+  }
+
+  /* --- telemetry (4 Hz) --- */
+  telT += frameMs;
+  if (telT > 250){
+    telT = 0;
+    tFps.textContent = String(S.fps);
+    tMs.innerHTML = frameMs.toFixed(1) + '<small> ms</small>';
+    tJourney.textContent = S.journey.toFixed(3);
+    tSpeed.textContent = S.speedN.toFixed(3);
+    tRpm.textContent = Math.round(S.rpm) + ' rpm';
+    tVel.innerHTML = Math.round(Math.abs(S.vel)) + '<small> px/s</small>';
+  }
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden){
+    cancelAnimationFrame(raf);
+    if (S.engine) S.engine.setOn(false);
+  } else {
+    lastT = performance.now(); lastY = window.scrollY;
+    raf = requestAnimationFrame(frame);
+    if (S.engine) S.engine.setOn(!S.muted);
+  }
+});
+
+/* deep links: ?jump=sectionId scrolls instantly.
+   ?peek=sectionId is debug-only: translates the page instead of scrolling,
+   so headless screenshots (which blank on scrolled pages) can capture sections. */
+{
+  const params = new URLSearchParams(location.search);
+  const jump = params.get('jump');
+  const el = jump && document.getElementById(jump);
+  if (el) requestAnimationFrame(() => {
+    el.scrollIntoView({ behavior: 'instant', block: 'start' });
+    lastY = window.scrollY;
+  });
+  const rpmPin = parseFloat(params.get('rpm'));
+  if (rpmPin > 0){
+    S.forceRpm = clamp(rpmPin, 0, 11000);
+    S.rpm = S.forceRpm;
+    S.needle = S.forceRpm / 11000;
+  }
+  const peek = params.get('peek');
+  const pel = peek && document.getElementById(peek);
+  if (pel){
+    const apply = () => {
+      const yOff = pel.getBoundingClientRect().top + window.scrollY;
+      document.querySelector('main').style.transform = 'translateY(' + (-yOff) + 'px)';
+      const max = document.documentElement.scrollHeight - innerHeight;
+      S.forceJourney = max > 0 ? clamp(yOff / max, 0, 1) : 0;
+      document.documentElement.classList.add('peeking');
+      document.querySelectorAll('.reveal').forEach(r => r.classList.add('in'));
+      tachVisible = true;
+    };
+    if (document.readyState === 'complete') apply();
+    else addEventListener('load', () => setTimeout(apply, 80));
+  }
+}
+
+sizeGL();
+sizeTach();
+raf = requestAnimationFrame(frame);
+console.log('%c[DJR] LIKE A DREAMER · TYPE-11 · view source is the documentation', 'color:#ff9a4d');
+</script>
+</body>
+</html>
