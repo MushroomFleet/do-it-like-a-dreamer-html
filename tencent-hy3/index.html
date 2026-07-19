@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>HY3 — Beyond the Boundaries</title>
+<meta name="description" content="An immersive WebGL journey pushing the boundaries of what's possible in web design." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Boot / loading veil -->
+  <div id="veil" class="veil">
+    <div class="veil__core">
+      <div class="veil__ring"></div>
+      <div class="veil__num"><span id="veilPct">0</span><i>%</i></div>
+      <div class="veil__label">CALIBRATING&nbsp;REALITY</div>
+    </div>
+  </div>
+
+  <!-- WebGL canvas -->
+  <canvas id="gl"></canvas>
+
+  <!-- Grain / vignette overlay -->
+  <div class="grain" aria-hidden="true"></div>
+  <div class="vignette" aria-hidden="true"></div>
+
+  <!-- Scroll progress -->
+  <div class="progress" aria-hidden="true"><span id="progressBar"></span></div>
+
+  <!-- Navigation -->
+  <header class="nav">
+    <div class="nav__brand">HY<i>3</i></div>
+    <nav class="nav__links">
+      <a href="#intro" data-i="0">Origin</a>
+      <a href="#flow" data-i="1">Flow</a>
+      <a href="#dream" data-i="2">Dream</a>
+      <a href="#edge" data-i="3">Edge</a>
+    </nav>
+    <div class="nav__rpm"><span id="rpm">0</span><i>RPM</i></div>
+  </header>
+
+  <!-- Scroll content -->
+  <main id="scroll">
+    <section class="panel" id="intro" data-i="0">
+      <div class="panel__inner">
+        <p class="kicker">A WebGL Experience · 2026</p>
+        <h1 class="title">
+          <span class="line"><span>Believe</span></span>
+          <span class="line"><span>in what you</span></span>
+          <span class="line"><span class="accent">feel.</span></span>
+        </h1>
+        <p class="lede">Even the things we can't explain are heading for something. Follow your heart and do it like a dreamer.</p>
+        <div class="scrollcue"><span></span>scroll to drift</div>
+      </div>
+    </section>
+
+    <section class="panel" id="flow" data-i="1">
+      <div class="panel__inner">
+        <p class="kicker">01 — Momentum</p>
+        <h2 class="title sm">I may be right,<br/>I may be <em>wrong.</em></h2>
+        <p class="lede">A fluid field of light bends around your intent. Move the cursor — the simulation listens.</p>
+      </div>
+    </section>
+
+    <section class="panel" id="dream" data-i="2">
+      <div class="panel__inner center">
+        <p class="kicker">02 — Possibility</p>
+        <h2 class="title sm">Push the<br/><span class="accent">boundaries.</span></h2>
+        <p class="lede">11,000 RPM of pure rendered possibility. We are the dreamers of the impossible.</p>
+      </div>
+    </section>
+
+    <section class="panel" id="edge" data-i="3">
+      <div class="panel__inner">
+        <p class="kicker">03 — Beyond</p>
+        <h2 class="title sm">Do it like<br/>a <em>dreamer.</em></h2>
+        <p class="lede">Built with WebGL, custom GLSL shaders, and the latest CSS. No frameworks. Just the edge of the possible.</p>
+        <div class="meta">
+          <span>WebGL2</span><span>GLSL</span><span>CSS Houdini</span><span>Scroll-driven</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
