@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="HEADING FOR SOMETHING — an interactive field guide for dreamers. WebGL2 shaders, scroll-driven motion, and a redline of 11,000 RPM." />
+<meta name="theme-color" content="#05010d" />
+<title>HEADING FOR SOMETHING — a dream engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@200;300;500;700;900&family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="css/style.css" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>✦</text></svg>" />
+</head>
+<body>
+
+<!-- ══════════ PRELOADER ══════════ -->
+<div id="loader" aria-hidden="true">
+  <div class="loader-inner">
+    <div class="loader-tag">DREAM ENGINE · V11K</div>
+    <div class="loader-count"><span id="loadCount">0</span><em>RPM</em></div>
+    <div class="loader-barwrap"><div id="loadBar"></div></div>
+    <div class="loader-sub">CALIBRATING&nbsp;IMPOSSIBILITY</div>
+  </div>
+</div>
+
+<!-- ══════════ WEBGL SKY ══════════ -->
+<canvas id="gl" aria-hidden="true"></canvas>
+<div class="grain" aria-hidden="true"></div>
+<canvas id="trail" aria-hidden="true"></canvas>
+<div id="cursor" aria-hidden="true"></div>
+<div id="cursorRing" aria-hidden="true"></div>
+
+<!-- ══════════ PROGRESS ══════════ -->
+<div id="progress" aria-hidden="true"></div>
+
+<!-- ══════════ NAV ══════════ -->
+<header class="nav">
+  <a class="nav-logo" href="#hero" data-hover>HFS<span>—</span>11K</a>
+  <nav class="nav-links" aria-label="Sections">
+    <a href="#believe" data-hover>BELIEVE</a>
+    <a href="#duality" data-hover>DOUBT</a>
+    <a href="#unknown" data-hover>MYSTERY</a>
+    <a href="#motion" data-hover>MOMENTUM</a>
+    <a href="#heart" data-hover>HEART</a>
+  </nav>
+  <button id="soundBtn" class="sound-btn" data-hover aria-pressed="false" aria-label="Toggle ambient sound">
+    <span class="sound-bars"><i></i><i></i><i></i><i></i></span>
+    <span class="sound-label">SOUND&nbsp;OFF</span>
+  </button>
+</header>
+
+<!-- ══════════ RPM HUD ══════════ -->
+<aside id="hud" aria-hidden="true">
+  <svg id="gauge" viewBox="0 0 200 130">
+    <defs>
+      <linearGradient id="gaugeGrad" x1="0" y1="1" x2="1" y2="0">
+        <stop offset="0%" stop-color="#39e6ff"/>
+        <stop offset="55%" stop-color="#c13bff"/>
+        <stop offset="100%" stop-color="#ff2e63"/>
+      </linearGradient>
+    </defs>
+    <path d="M 20 115 A 85 85 0 0 1 180 115" fill="none" stroke="rgba(255,255,255,.10)" stroke-width="10" stroke-linecap="round"/>
+    <path id="gaugeArc" d="M 20 115 A 85 85 0 0 1 180 115" fill="none" stroke="url(#gaugeGrad)" stroke-width="10" stroke-linecap="round"/>
+    <g id="ticks"></g>
+    <line id="needle" x1="100" y1="115" x2="100" y2="42" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+    <circle cx="100" cy="115" r="6" fill="#0b0221" stroke="#fff" stroke-width="1.5"/>
+    <text x="100" y="128" text-anchor="middle" class="gauge-x1000">×1000 RPM</text>
+  </svg>
+  <div class="rpm-read"><span id="rpmNum">800</span><em>RPM</em></div>
+</aside>
+
+<main class="wrap" id="stage">
+
+  <!-- ══════════ 00 · HERO ══════════ -->
+  <section id="hero" class="panel">
+    <p class="kicker" data-reveal>AN INTERACTIVE FIELD GUIDE FOR DREAMERS — ISSUE 001</p>
+    <h1 class="hero-title" aria-label="Heading for something">
+      <span class="line" data-split>HEADING</span>
+      <span class="line thin" data-split>FOR</span>
+      <span class="line serif" data-split>something</span>
+    </h1>
+    <p class="hero-sub" data-reveal>I'll show you the way how to believe in what you feel.<br/>Scroll to redline.</p>
+    <div class="hero-cta" data-reveal>
+      <a class="btn magnetic" href="#believe" data-hover><span>BEGIN THE DESCENT</span></a>
+      <a class="btn ghostbtn magnetic" href="#heart" data-hover><span>SKIP TO THE HEART</span></a>
+    </div>
+    <div class="hero-stats" data-reveal>
+      <div><b>11,000</b><i>RPM REDLINE</i></div>
+      <div><b>∞</b><i>POSSIBILITIES</i></div>
+      <div><b>0.00</b><i>GRAVITY</i></div>
+    </div>
+    <div class="scroll-cue" aria-hidden="true"><span></span></div>
+    <div class="ghost" data-speed="0.12" aria-hidden="true">DREAM</div>
+  </section>
+
+  <!-- ══════════ MARQUEE ══════════ -->
+  <div class="marquee" aria-hidden="true">
+    <div class="marquee-track" id="marqueeTrack">
+      <span>BELIEVE IN WHAT YOU FEEL <b>✦</b> FOLLOW YOUR HEART <b>✦</b> DO IT LIKE A DREAMER <b>✦</b>&nbsp;</span>
+      <span>BELIEVE IN WHAT YOU FEEL <b>✦</b> FOLLOW YOUR HEART <b>✦</b> DO IT LIKE A DREAMER <b>✦</b>&nbsp;</span>
+    </div>
+  </div>
+
+  <!-- ══════════ 01 · BELIEVE ══════════ -->
+  <section id="believe" class="panel">
+    <p class="eyebrow" data-reveal>01 — BELIEF</p>
+    <h2 class="section-title" data-split>The way how to believe in what you feel</h2>
+    <p class="lede" data-reveal>Belief isn't a leap. It's a tuning fork. You don't find the frequency — you become it. Three principles, printed on glass:</p>
+    <div class="cards">
+      <article class="card tilt" data-reveal data-hover>
+        <div class="card-num">I</div>
+        <h3>FEEL FIRST</h3>
+        <p>Intuition is data you haven't learned to read yet. Listen before you label.</p>
+      </article>
+      <article class="card tilt" data-reveal data-hover>
+        <div class="card-num">II</div>
+        <h3>TRUST THE SIGNAL</h3>
+        <p>A feeling that survives sleep is not noise. It's coordinates.</p>
+      </article>
+      <article class="card tilt" data-reveal data-hover>
+        <div class="card-num">III</div>
+        <h3>MOVE ANYWAY</h3>
+        <p>Certainty is not a prerequisite for motion. Dreams compile while running.</p>
+      </article>
+    </div>
+    <div class="ghost" data-speed="0.18" aria-hidden="true">FEEL</div>
+  </section>
+
+  <!-- ══════════ 02 · DUALITY ══════════ -->
+  <section id="duality" class="panel">
+    <p class="eyebrow" data-reveal>02 — DOUBT</p>
+    <h2 class="section-title" data-split>Oh I may be right, I may be wrong</h2>
+    <p class="lede" data-reveal>Doubt is not the enemy of the dreamer — it's the second engine. Drag the seam. Watch both truths hold.</p>
+
+    <div class="dual-stage" id="dualStage" data-reveal>
+      <div class="dual-layer dual-right">
+        <div class="dual-content">
+          <h3>I MAY BE<br/><em>wrong</em></h3>
+          <p>If you're wrong, you learn the exact shape of the world.</p>
+        </div>
+      </div>
+      <div class="dual-layer dual-left" id="dualTop">
+        <div class="dual-content">
+          <h3>I MAY BE<br/><em>right</em></h3>
+          <p>If you're right, the world bends a little toward you.</p>
+        </div>
+      </div>
+      <div class="dual-handle" id="dualHandle"><span>⟨ DRAG ⟩</span></div>
+      <input type="range" id="dualRange" min="0" max="100" value="50" aria-label="Balance between right and wrong" />
+    </div>
+    <p class="dual-note" data-reveal>Either way — <em>you were heading for something.</em></p>
+    <div class="ghost" data-speed="0.15" aria-hidden="true">MAYBE</div>
+  </section>
+
+  <!-- ══════════ 03 · MYSTERY ══════════ -->
+  <section id="unknown" class="panel">
+    <p class="eyebrow" data-reveal>03 — MYSTERY</p>
+    <h2 class="section-title" data-split>Even the things I can't explain</h2>
+    <p class="lede" data-reveal>An incomplete inventory of the unprovable. Hover to decrypt:</p>
+    <ul class="mystery-list">
+      <li data-reveal><button class="scramble" data-hover data-text="déjà vu at exactly 3:33">déjà vu at exactly 3:33</button></li>
+      <li data-reveal><button class="scramble" data-hover data-text="the idea that arrived fully formed">the idea that arrived fully formed</button></li>
+      <li data-reveal><button class="scramble" data-hover data-text="gravity around certain people">gravity around certain people</button></li>
+      <li data-reveal><button class="scramble" data-hover data-text="why the bug vanishes when observed">why the bug vanishes when observed</button></li>
+      <li data-reveal><button class="scramble" data-hover data-text="the pull you felt reading this">the pull you felt reading this</button></li>
+    </ul>
+    <p class="mystery-note" data-reveal>Not everything true can be measured. Some things can only be <em>followed</em>.</p>
+    <div class="ghost" data-speed="0.2" aria-hidden="true">UN—KNOWN</div>
+  </section>
+
+  <!-- ══════════ 04 · MOMENTUM (horizontal) ══════════ -->
+  <section id="motion" class="hscroll-outer">
+    <div class="hscroll-sticky">
+      <div class="hscroll-head">
+        <p class="eyebrow">04 — MOMENTUM</p>
+        <h2 class="section-title">Are heading for something</h2>
+        <p class="hscroll-hint">KEEP SCROLLING — THE FLOOR MOVES SIDEWAYS →</p>
+      </div>
+      <div class="htrack" id="htrack">
+        <article class="hcard" data-hover>
+          <div class="hcard-index">01</div>
+          <h3>CURIOSITY</h3>
+          <p>Every impossible thing begins as a question somebody was embarrassed to ask out loud.</p>
+        </article>
+        <article class="hcard" data-hover>
+          <div class="hcard-index">02</div>
+          <h3>COURAGE</h3>
+          <p>Fear is just excitement that hasn't been briefed yet. Brief it. Then move.</p>
+        </article>
+        <article class="hcard" data-hover>
+          <div class="hcard-index">03</div>
+          <h3>MOTION</h3>
+          <p>You can't steer a parked dream. Direction appears at speed — never before it.</p>
+        </article>
+        <article class="hcard" data-hover>
+          <div class="hcard-index">04</div>
+          <h3>SIGNAL</h3>
+          <p>The world starts whispering back. Coincidences stack. That's not luck — that's resonance.</p>
+        </article>
+        <article class="hcard hcard-final" data-hover>
+          <div class="hcard-index">05</div>
+          <h3>ARRIVAL</h3>
+          <p>You don't arrive. You become. The destination was a compass all along.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ 05 · HEART ══════════ -->
+  <section id="heart" class="panel">
+    <canvas id="heartCanvas" aria-hidden="true"></canvas>
+    <div class="heart-content">
+      <p class="eyebrow" data-reveal>05 — ARRIVAL</p>
+      <h2 class="section-title huge" data-split>Follow your heart</h2>
+      <p class="serif-line" data-reveal>and do it like a dreamer</p>
+      <button class="btn magnetic big" id="dreamBtn" data-hover><span>START DREAMING</span></button>
+      <p class="heart-note" data-reveal>2,048 particles agreed to form this heart.<br/>None of them were sure either.</p>
+    </div>
+  </section>
+
+  <!-- ══════════ FOOTER ══════════ -->
+  <footer class="footer">
+    <div class="footer-top">
+      <p class="footer-brand">HEADING FOR SOMETHING<span> — tuned to 11,000 RPM</span></p>
+      <a href="#hero" class="btn ghostbtn magnetic" data-hover><span>BACK TO ORBIT ↑</span></a>
+    </div>
+    <ul class="tech-chips" aria-label="Technology used">
+      <li>WebGL2</li><li>GLSL · domain-warped fbm</li><li>scroll-driven motion</li>
+      <li>@property</li><li>oklch()</li><li>backdrop-filter</li>
+      <li>canvas 2D particles</li><li>generative WebAudio</li><li>:has()</li><li>text-wrap: balance</li>
+    </ul>
+    <p class="footer-fine">DREAM ENGINE · ISSUE 001 · BUILT AT REDLINE · MMXXVI<br/>headphones & high refresh rate recommended · motion respects your system settings</p>
+  </footer>
+
+</main>
+
+<noscript><div class="noscript">This experience is 94% JavaScript and 6% stardust. Enable JS to feel it.</div></noscript>
+
+<script src="js/gl.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
